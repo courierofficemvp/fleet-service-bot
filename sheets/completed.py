@@ -17,7 +17,8 @@ def add_completed(data):
 
     completed_sheet.append_row(row)
 
-# 🔥 ДЛЯ БУХГАЛТЕРА (ВОЗВРАЩАЕМ)
+
+# ✅ ДЛЯ БУХГАЛТЕРА (ОБЯЗАТЕЛЬНО)
 def get_completed_since(date_from_str):
     rows = completed_sheet.get_all_records()
     date_from = datetime.strptime(date_from_str, "%d.%m.%Y")
@@ -34,7 +35,8 @@ def get_completed_since(date_from_str):
 
     return result
 
-# 🔥 ДЛЯ МЕХАНИКА
+
+# ✅ ДЛЯ МЕХАНИКА
 def get_my_completed_since(user_display, date_from_str):
     rows = completed_sheet.get_all_records()
     date_from = datetime.strptime(date_from_str, "%d.%m.%Y")
