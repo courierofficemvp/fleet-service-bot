@@ -10,3 +10,8 @@ def get_role(telegram_id: int):
 def get_users_by_role(role: str):
     data = users_sheet.get_all_records()
     return [row["telegram_id"] for row in data if row["role"] == role]
+
+def get_user_display(user):
+    full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+    role = get_role(user.id) or "unknown"
+    return f"{full_name} | {role}"

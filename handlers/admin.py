@@ -4,7 +4,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 
 from sheets.pending import add_pending
-from sheets.users import get_users_by_role
+from sheets.users import get_users_by_role, get_user_display
 from sheets.flota import car_exists
 from keyboards.common import confirm_kb
 
@@ -54,6 +54,8 @@ async def phone(msg: Message, state: FSMContext):
 
     service_id = str(uuid.uuid4())
     data["id"] = service_id
+
+    data["created_by"] = get_user_display(msg.from_user)
 
     add_pending(data)
 

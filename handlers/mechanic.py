@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from sheets.completed import add_completed
 from sheets.pending import get_pending, delete_pending, get_by_id
 from sheets.flota import car_exists
+from sheets.users import get_user_display
 from keyboards.common import complete_kb
 
 router = Router()
@@ -65,9 +66,14 @@ async def comment(msg: Message, state: FSMContext):
     data = await state.get_data()
     data["comment"] = msg.text
 
+    user_display = get_user_display(msg.from_user)
+
+    data["created_by"] = user_display
+    data["completed_by"] = user_display
+
     add_completed(data)
 
-    await msg.answer("✅ Сервис добавлен")
+    await msg.answer("✅ Сервис добавлен вручную")
     await state.clear()
 
 @router.message(lambda msg: msg.text == "⏳ Сервисы в ожидании")
@@ -79,23 +85,7 @@ async def pending_list(msg: Message):
         return
 
     for s in services:
-        text = f"""🚗 {s['car_number']}
-🕒 {s['datetime']}
-📄 {s['work_description']}
-📞 {s['driver_phone']}
-ID: {s['id']}
-"""
-        await msg.answer(text)
-
-@router.callback_query(F.data.startswith("accept:"))
-async def accept(cb: CallbackQuery):
-    service_id = cb.data.split(":")[1]
-    await cb.message.answer("Принято", reply_markup=complete_kb(service_id))
-
-@router.callback_query(F.data.startswith("cancel:"))
-async def cancel(cb: CallbackQuery):
-    delete_pending(cb.data.split(":")[1])
-    await cb.message.answer("Отменено")
+        await msg.answer(f"{s['car_number']} | {s['datetime']}")
 
 @router.callback_query(F.data.startswith("finish:"))
 async def finish_start(cb: CallbackQuery, state: FSMContext):
@@ -105,12 +95,7 @@ async def finish_start(cb: CallbackQuery, state: FSMContext):
 
 @router.message(FinishService.netto)
 async def get_netto(msg: Message, state: FSMContext):
-    try:
-        netto = normalize_money(msg.text)
-    except:
-        await msg.answer("❌ Неверная сумма")
-        return
-
+    netto = normalize_money(msg.text)
     await state.update_data(netto=netto)
     await msg.answer("Комментарий:")
     await state.set_state(FinishService.comment)
@@ -124,7 +109,9 @@ async def finish_done(msg: Message, state: FSMContext):
         "car_number": service["car_number"],
         "datetime": service["datetime"],
         "netto": data["netto"],
-        "comment": msg.text
+        "comment": msg.text,
+        "created_by": service.get("created_by", ""),
+        "completed_by": get_user_display(msg.from_user)
     }
 
     add_completed(result)
