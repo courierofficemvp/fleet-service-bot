@@ -23,8 +23,7 @@ class FinishService(StatesGroup):
     service_id = State()
 
 def normalize_money(value: str):
-    value = value.replace(",", ".").strip()
-    return float(value)
+    return float(value.replace(",", ".").strip())
 
 @router.message(lambda msg: msg.text == "➕ Записать сервис")
 async def start(msg: Message, state: FSMContext):
@@ -51,12 +50,7 @@ async def dt(msg: Message, state: FSMContext):
 
 @router.message(AddService.netto)
 async def netto(msg: Message, state: FSMContext):
-    try:
-        netto = normalize_money(msg.text)
-    except:
-        await msg.answer("❌ Неверная сумма")
-        return
-
+    netto = normalize_money(msg.text)
     await state.update_data(netto=netto)
     await msg.answer("Комментарий:")
     await state.set_state(AddService.comment)
@@ -75,17 +69,6 @@ async def comment(msg: Message, state: FSMContext):
 
     await msg.answer("✅ Сервис добавлен вручную")
     await state.clear()
-
-@router.message(lambda msg: msg.text == "⏳ Сервисы в ожидании")
-async def pending_list(msg: Message):
-    services = get_pending()
-
-    if not services:
-        await msg.answer("Нет сервисов")
-        return
-
-    for s in services:
-        await msg.answer(f"{s['car_number']} | {s['datetime']}")
 
 @router.callback_query(F.data.startswith("finish:"))
 async def finish_start(cb: CallbackQuery, state: FSMContext):
