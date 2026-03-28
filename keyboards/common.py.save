@@ -1,8 +1,10 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
+
 # ===============================
-# 👨‍🔧 МЕХАНИК
+# 👨‍🔧 КЛАВИАТУРА МЕХАНИКА
 # ===============================
+
 mechanic_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="➕ Записать сервис")],
@@ -12,9 +14,11 @@ mechanic_kb = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
+
 # ===============================
 # 👨‍💼 АДМИН / АССИСТЕНТ
 # ===============================
+
 admin_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="➕ Создать сервис")],
@@ -23,9 +27,11 @@ admin_kb = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
+
 # ===============================
-# 🔘 INLINE
+# 🔘 INLINE КНОПКИ
 # ===============================
+
 def confirm_kb(service_id):
     return InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -33,6 +39,7 @@ def confirm_kb(service_id):
             InlineKeyboardButton(text="❌ Отменить", callback_data=f"cancel:{service_id}")
         ]
     ])
+
 
 def complete_kb(service_id):
     return InlineKeyboardMarkup(inline_keyboard=[
