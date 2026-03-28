@@ -16,10 +16,10 @@ async def start(msg: Message):
         return
 
     if role == "mechanic":
-        await msg.answer("Меню механика", reply_markup=mechanic_kb())
+        await msg.answer("Меню механика", reply_markup=mechanic_kb)
 
     elif role in ["admin", "assistant", "chief_mechanic"]:
-        await msg.answer("Меню", reply_markup=admin_kb())
+        await msg.answer("Меню", reply_markup=admin_kb)
 
     elif role == "accountant":
-        await msg.answer("Меню бухгалтера", reply_markup=accountant_kb())
+        await msg.answer("Меню бухгалтера", reply_markup=accountant_kb)
