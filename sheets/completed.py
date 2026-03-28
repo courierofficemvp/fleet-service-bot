@@ -2,15 +2,15 @@ from sheets.client import completed_sheet
 from datetime import datetime
 
 def add_completed(data):
-    brutto = round(float(data["netto"]) * 1.23, 2)
+    brutto = round(float(data.get("netto", 0)) * 1.23, 2)
 
     row = [
-        data["id"],
-        data["car_number"].upper(),
-        data["datetime"],
-        float(data["netto"]),
+        data.get("id", ""),  # 🔥 НЕ УПАДЁТ
+        data.get("car_number", "").upper(),
+        data.get("datetime", ""),
+        float(data.get("netto", 0)),
         brutto,
-        data["comment"],
+        data.get("comment", ""),
         data.get("created_by", ""),
         data.get("completed_by", "")
     ]
@@ -18,7 +18,6 @@ def add_completed(data):
     completed_sheet.append_row(row)
 
 
-# ✅ ДЛЯ БУХГАЛТЕРА (ОБЯЗАТЕЛЬНО)
 def get_completed_since(date_from_str):
     rows = completed_sheet.get_all_records()
     date_from = datetime.strptime(date_from_str, "%d.%m.%Y")
@@ -36,7 +35,6 @@ def get_completed_since(date_from_str):
     return result
 
 
-# ✅ ДЛЯ МЕХАНИКА
 def get_my_completed_since(user_display, date_from_str):
     rows = completed_sheet.get_all_records()
     date_from = datetime.strptime(date_from_str, "%d.%m.%Y")
