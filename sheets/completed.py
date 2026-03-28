@@ -1,19 +1,14 @@
 from sheets.client import completed_sheet
 from datetime import datetime
-import uuid
-
-def normalize_car(car):
-    return str(car).strip().upper()
 
 def add_completed(data):
-    netto = float(str(data["netto"]).replace(",", ".").strip())
-    brutto = round(netto * 1.23, 2)
+    brutto = round(float(data["netto"]) * 1.23, 2)
 
     row = [
-        str(uuid.uuid4()),
-        normalize_car(data["car_number"]),
+        data["id"],
+        data["car_number"].upper(),
         data["datetime"],
-        netto,
+        float(data["netto"]),
         brutto,
         data["comment"],
         data.get("created_by", ""),
@@ -22,17 +17,22 @@ def add_completed(data):
 
     completed_sheet.append_row(row)
 
-def get_completed_since(date_from_str):
+# 🔥 МОИ СЕРВИСЫ (ИСПРАВЛЕНО)
+def get_my_completed_since(user_display, date_from_str):
     rows = completed_sheet.get_all_records()
     date_from = datetime.strptime(date_from_str, "%d.%m.%Y")
 
     result = []
+
     for r in rows:
+        if r.get("completed_by") != user_display:
+            continue
+
         try:
-            row_date = datetime.strptime(str(r["datetime"]).split(" ")[0], "%d.%m.%Y")
+            row_date = datetime.strptime(r["datetime"].split(" ")[0], "%d.%m.%Y")
             if row_date >= date_from:
                 result.append(r)
-        except Exception:
+        except:
             continue
 
     return result

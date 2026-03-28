@@ -3,7 +3,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from config import BOT_TOKEN
-from handlers import start, admin, mechanic, accountant
+from handlers import start, admin, mechanic, accountant, mechanic_my
 
 logging.basicConfig(level=logging.INFO)
 
@@ -17,6 +17,7 @@ async def main():
     dp.include_router(admin.router)
     dp.include_router(mechanic.router)
     dp.include_router(accountant.router)
+dp.include_router(mechanic_my.router)
 
     await dp.start_polling(bot)
 
