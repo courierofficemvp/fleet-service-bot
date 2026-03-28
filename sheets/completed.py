@@ -5,7 +5,7 @@ def add_completed(data):
     brutto = round(float(data.get("netto", 0)) * 1.23, 2)
 
     row = [
-        data.get("id", ""),  # 🔥 НЕ УПАДЁТ
+        data.get("id", ""),
         data.get("car_number", "").upper(),
         data.get("datetime", ""),
         float(data.get("netto", 0)),
