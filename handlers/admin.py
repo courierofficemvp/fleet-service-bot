@@ -2,13 +2,12 @@ from aiogram import Router
 from aiogram.types import Message
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
+import uuid
 
 from sheets.pending import add_pending
 from sheets.users import get_users_by_role, get_user_display
 from sheets.flota import car_exists
 from keyboards.common import confirm_kb
-
-import uuid
 
 router = Router()
 
@@ -37,24 +36,21 @@ async def car(msg: Message, state: FSMContext):
 
 @router.message(CreateService.dt)
 async def dt(msg: Message, state: FSMContext):
-    await state.update_data(datetime=msg.text)
+    await state.update_data(datetime=msg.text.strip())
     await msg.answer("Описание работ:")
     await state.set_state(CreateService.work)
 
 @router.message(CreateService.work)
 async def work(msg: Message, state: FSMContext):
-    await state.update_data(work_description=msg.text)
+    await state.update_data(work_description=msg.text.strip())
     await msg.answer("Телефон водителя:")
     await state.set_state(CreateService.phone)
 
 @router.message(CreateService.phone)
 async def phone(msg: Message, state: FSMContext):
     data = await state.get_data()
-    data["driver_phone"] = msg.text
-
-    service_id = str(uuid.uuid4())
-    data["id"] = service_id
-
+    data["driver_phone"] = msg.text.strip()
+    data["id"] = str(uuid.uuid4())
     data["created_by"] = get_user_display(msg.from_user)
 
     add_pending(data)
@@ -63,21 +59,22 @@ async def phone(msg: Message, state: FSMContext):
 
     text = f"""🚗 Новый сервис
 
-ID: {service_id}
+ID: {data['id']}
 Авто: {data['car_number']}
 Дата: {data['datetime']}
 Работы: {data['work_description']}
 Телефон: {data['driver_phone']}
+Кто записал: {data['created_by']}
 """
 
     for mechanic_id in mechanics:
         try:
             await msg.bot.send_message(
-                mechanic_id,
-                text,
-                reply_markup=confirm_kb(service_id)
+                chat_id=int(mechanic_id),
+                text=text,
+                reply_markup=confirm_kb(data["id"])
             )
-        except:
+        except Exception:
             pass
 
     await msg.answer("✅ Сервис отправлен механику")

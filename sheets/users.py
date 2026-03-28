@@ -13,5 +13,8 @@ def get_users_by_role(role: str):
 
 def get_user_display(user):
     full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+    if not full_name:
+        full_name = user.username or str(user.id)
+
     role = get_role(user.id) or "unknown"
     return f"{full_name} | {role}"

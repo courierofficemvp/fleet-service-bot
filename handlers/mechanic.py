@@ -44,42 +44,92 @@ async def car(msg: Message, state: FSMContext):
 
 @router.message(AddService.dt)
 async def dt(msg: Message, state: FSMContext):
-    await state.update_data(datetime=msg.text)
+    await state.update_data(datetime=msg.text.strip())
     await msg.answer("NETTO:")
     await state.set_state(AddService.netto)
 
 @router.message(AddService.netto)
 async def netto(msg: Message, state: FSMContext):
-    netto = normalize_money(msg.text)
-    await state.update_data(netto=netto)
+    try:
+        netto_value = normalize_money(msg.text)
+    except Exception:
+        await msg.answer("❌ Неверная сумма")
+        return
+
+    await state.update_data(netto=netto_value)
     await msg.answer("Комментарий:")
     await state.set_state(AddService.comment)
 
 @router.message(AddService.comment)
 async def comment(msg: Message, state: FSMContext):
     data = await state.get_data()
-    data["comment"] = msg.text
-
     user_display = get_user_display(msg.from_user)
 
-    data["created_by"] = user_display
-    data["completed_by"] = user_display
+    result = {
+        "car_number": data["car_number"],
+        "datetime": data["datetime"],
+        "netto": data["netto"],
+        "comment": msg.text.strip(),
+        "created_by": user_display,
+        "completed_by": user_display
+    }
 
-    add_completed(data)
+    add_completed(result)
 
     await msg.answer("✅ Сервис добавлен вручную")
     await state.clear()
 
+@router.message(lambda msg: msg.text == "⏳ Сервисы в ожидании")
+async def pending_list(msg: Message):
+    services = get_pending()
+
+    if not services:
+        await msg.answer("Нет сервисов")
+        return
+
+    for s in services:
+        text = f"""🚗 {s.get('car_number', '')}
+🕒 {s.get('datetime', '')}
+📄 {s.get('work_description', '')}
+📞 {s.get('driver_phone', '')}
+👤 Кто записал: {s.get('created_by', '')}
+ID: {s.get('id', '')}
+"""
+        await msg.answer(text)
+
+@router.callback_query(F.data.startswith("accept:"))
+async def accept(cb: CallbackQuery):
+    service_id = cb.data.split(":", 1)[1]
+    await cb.message.answer(
+        f"✅ Сервис принят\nID: {service_id}",
+        reply_markup=complete_kb(service_id)
+    )
+    await cb.answer()
+
+@router.callback_query(F.data.startswith("cancel:"))
+async def cancel(cb: CallbackQuery):
+    service_id = cb.data.split(":", 1)[1]
+    delete_pending(service_id)
+    await cb.message.answer("❌ Сервис отменён")
+    await cb.answer()
+
 @router.callback_query(F.data.startswith("finish:"))
 async def finish_start(cb: CallbackQuery, state: FSMContext):
-    await state.update_data(service_id=cb.data.split(":")[1])
+    service_id = cb.data.split(":", 1)[1]
+    await state.update_data(service_id=service_id)
     await cb.message.answer("NETTO:")
     await state.set_state(FinishService.netto)
+    await cb.answer()
 
 @router.message(FinishService.netto)
 async def get_netto(msg: Message, state: FSMContext):
-    netto = normalize_money(msg.text)
-    await state.update_data(netto=netto)
+    try:
+        netto_value = normalize_money(msg.text)
+    except Exception:
+        await msg.answer("❌ Неверная сумма")
+        return
+
+    await state.update_data(netto=netto_value)
     await msg.answer("Комментарий:")
     await state.set_state(FinishService.comment)
 
@@ -88,11 +138,16 @@ async def finish_done(msg: Message, state: FSMContext):
     data = await state.get_data()
     service = get_by_id(data["service_id"])
 
+    if not service:
+        await msg.answer("❌ Сервис не найден")
+        await state.clear()
+        return
+
     result = {
         "car_number": service["car_number"],
         "datetime": service["datetime"],
         "netto": data["netto"],
-        "comment": msg.text,
+        "comment": msg.text.strip(),
         "created_by": service.get("created_by", ""),
         "completed_by": get_user_display(msg.from_user)
     }
