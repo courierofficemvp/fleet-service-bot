@@ -12,14 +12,17 @@ async def start(msg: Message):
     role = check_role(msg.from_user.id)
 
     if not role:
-        await msg.answer("⛔ Нет доступа")
+        await msg.answer("❌ У вас нет доступа")
         return
 
     if role == "mechanic":
-        await msg.answer("Меню механика", reply_markup=mechanic_kb)
+        await msg.answer("Меню", reply_markup=mechanic_kb)
 
-    elif role in ["admin", "assistant", "chief_mechanic"]:
+    elif role in ["admin", "assistant"]:
         await msg.answer("Меню", reply_markup=admin_kb)
 
-    elif role == "accountant":
-        await msg.answer("Меню бухгалтера", reply_markup=accountant_kb)
+    elif role in ["accountant", "chief_mechanic"]:
+        await msg.answer("Меню", reply_markup=accountant_kb)
+
+    else:
+        await msg.answer("❌ Роль не определена")
