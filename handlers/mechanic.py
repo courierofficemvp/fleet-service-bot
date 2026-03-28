@@ -76,7 +76,8 @@ async def accept(callback: CallbackQuery):
 
     service = get_by_id(service_id)
 
-    if service["assigned_to"]:
+    # 🔥 защита от двойного принятия
+    if service["assigned_to"] and service["assigned_to"] != user:
         await callback.answer("Уже взят другим механиком", show_alert=True)
         return
 
@@ -92,6 +93,14 @@ async def accept(callback: CallbackQuery):
 @router.callback_query(lambda c: c.data.startswith("cancel:"))
 async def cancel(callback: CallbackQuery):
     service_id = callback.data.split(":")[1]
+    user = get_user_display(callback.from_user)
+
+    service = get_by_id(service_id)
+
+    # 🔥 только владелец может отменить
+    if service["assigned_to"] and service["assigned_to"] != user:
+        await callback.answer("Это не твой сервис", show_alert=True)
+        return
 
     update_status(service_id, "pending", "")
 
@@ -108,13 +117,32 @@ class FinishService(StatesGroup):
 
 @router.callback_query(lambda c: c.data.startswith("finish:"))
 async def finish(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(service_id=callback.data.split(":")[1])
+    service_id = callback.data.split(":")[1]
+    user = get_user_display(callback.from_user)
+
+    service = get_by_id(service_id)
+
+    # 🔥 только владелец может завершить
+    if service["assigned_to"] != user:
+        await callback.answer("Это не твой сервис", show_alert=True)
+        return
+
+    await state.update_data(service_id=service_id)
     await callback.message.answer("Введите NETTO:")
     await state.set_state(FinishService.netto)
 
 @router.message(FinishService.netto)
 async def get_netto(msg: Message, state: FSMContext):
-    await state.update_data(netto=msg.text)
+    # 🔥 очистка ввода
+    netto = msg.text.replace(",", ".").replace("zł", "").strip()
+
+    try:
+        float(netto)
+    except:
+        await msg.answer("❌ Введите число (например 250 или 250.50)")
+        return
+
+    await state.update_data(netto=netto)
     await msg.answer("Комментарий:")
     await state.set_state(FinishService.comment)
 
