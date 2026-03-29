@@ -5,5 +5,6 @@ mechanic_kb = ReplyKeyboardMarkup(
         [KeyboardButton(text="⏳ Сервисы в ожидании")],
         [KeyboardButton(text="📌 Мои сервисы")],
     ],
-    resize_keyboard=True
+    resize_keyboard=True,
+    is_persistent=True
 )

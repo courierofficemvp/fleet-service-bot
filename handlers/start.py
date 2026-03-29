@@ -7,15 +7,38 @@ from keyboards.mechanic import mechanic_kb
 router = Router()
 
 
-@router.message()
-async def start(message: Message):
-    role = check_role(message.from_user)
+def get_role_safe(user):
+    try:
+        return check_role(user)
+    except Exception as e:
+        print("ROLE ERROR:", e)
+        return None
+
+
+@router.message(lambda msg: msg.text == "/start")
+async def start_cmd(message: Message):
+    role = get_role_safe(message.from_user)
 
     if role == "mechanic":
         await message.answer(
-            "👨‍🔧 Вы вошли как механик",
+            "👨‍🔧 Вы механик",
             reply_markup=mechanic_kb
         )
         return
 
-    await message.answer("У вас нет доступа")
+    await message.answer("Нет доступа")
+
+
+# 🔥 ФОЛБЭК КОМАНДА (очень важно)
+@router.message(lambda msg: msg.text == "/menu")
+async def menu(message: Message):
+    role = get_role_safe(message.from_user)
+
+    if role == "mechanic":
+        await message.answer(
+            "📋 Меню механика",
+            reply_markup=mechanic_kb
+        )
+        return
+
+    await message.answer("Нет доступа")
