@@ -1,4 +1,4 @@
-ffrom sheets.client import pending_sheet
+from sheets.client import pending_sheet
 from uuid import uuid4
 
 
