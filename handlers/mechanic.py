@@ -1,14 +1,13 @@
 from datetime import datetime
 
 from aiogram import Router
+from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
 
-from keyboards.common import complete_kb, confirm_kb
-from sheets.completed import add_completed, exists_completed, get_my_completed_since
-from sheets.pending import assign_if_free, delete_pending, get_by_id, get_pending, update_status
-from sheets.users import get_user_display
+from keyboards.common import confirm_kb, complete_kb
+from sheets.pending import get_pending, update_status, get_by_id, delete_pending, assign_if_free
+from sheets.completed import add_completed, get_my_completed_since, exists_completed
 
 router = Router()
 
@@ -29,16 +28,14 @@ async def my_services_start(msg: Message, state: FSMContext):
 
 @router.message(MyServices.date_from)
 async def my_services_show(msg: Message, state: FSMContext):
-    raw_date = (msg.text or "").strip()
-
     try:
-        datetime.strptime(raw_date, "%d.%m.%Y")
-    except ValueError:
+        datetime.strptime(msg.text, "%d.%m.%Y")
+    except:
         await msg.answer("❌ Формат даты: DD.MM.YYYY")
         return
 
-    user_display = get_user_display(msg.from_user)
-    services = get_my_completed_since(user_display, raw_date)
+    user_id = str(msg.from_user.id)
+    services = get_my_completed_since(user_id, msg.text)
 
     if not services:
         await msg.answer("Нет сервисов")
@@ -49,9 +46,9 @@ async def my_services_show(msg: Message, state: FSMContext):
         await msg.answer(
             f"""📊 ТВОИ СЕРВИСЫ
 
-🚗 {s.get('car_number', '-')}
-🕒 {s.get('datetime', '-')}
-💰 {s.get('netto', '-')} zł
+🚗 {s.get('car_number')}
+🕒 {s.get('datetime')}
+💰 {s.get('netto')} zł
 """
         )
 
@@ -66,17 +63,14 @@ async def my_services_show(msg: Message, state: FSMContext):
 async def pending(msg: Message):
     services = get_pending()
 
-    pending_services = [s for s in services if s.get("status") == "pending"]
+    for s in services:
+        if s.get("status") != "pending":
+            continue
 
-    if not pending_services:
-        await msg.answer("Нет сервисов в ожидании")
-        return
-
-    for s in pending_services:
         await msg.answer(
-            f"""🚗 {s.get('car_number', '-')}
-🕒 {s.get('datetime', '-')}
-📄 {s.get('work_description', '-')}
+            f"""🚗 {s.get('car_number')}
+🕒 {s.get('datetime')}
+📄 {s.get('work_description')}
 """,
             reply_markup=confirm_kb(s["id"])
         )
@@ -86,46 +80,43 @@ async def pending(msg: Message):
 # ✅ ПРИНЯТЬ
 # ===============================
 
-@router.callback_query(lambda c: c.data and c.data.startswith("accept:"))
+@router.callback_query(lambda c: c.data.startswith("accept:"))
 async def accept(callback: CallbackQuery):
-    service_id = callback.data.split(":", 1)[1]
-    user = get_user_display(callback.from_user)
+    service_id = callback.data.split(":")[1]
+    user_id = str(callback.from_user.id)
 
-    success = assign_if_free(service_id, user)
+    success = assign_if_free(service_id, user_id)
 
     if not success:
-        await callback.answer("Уже взят другим механиком или недоступен", show_alert=True)
+        await callback.answer("Уже взят или недоступен", show_alert=True)
         return
 
-    await callback.answer("Сервис принят")
+    await callback.answer("Принято")
     await callback.message.edit_reply_markup()
-    await callback.message.answer(
-        "Ты взял сервис",
-        reply_markup=complete_kb(service_id)
-    )
+    await callback.message.answer("Ты взял сервис", reply_markup=complete_kb(service_id))
 
 
 # ===============================
 # ❌ ОТМЕНА
 # ===============================
 
-@router.callback_query(lambda c: c.data and c.data.startswith("cancel:"))
+@router.callback_query(lambda c: c.data.startswith("cancel:"))
 async def cancel(callback: CallbackQuery):
-    service_id = callback.data.split(":", 1)[1]
-    user = get_user_display(callback.from_user)
+    service_id = callback.data.split(":")[1]
+    user_id = str(callback.from_user.id)
 
     service = get_by_id(service_id)
 
     if not service:
-        await callback.answer("Сервис не найден", show_alert=True)
+        await callback.answer("Не найдено", show_alert=True)
         return
 
-    if service.get("assigned_to") != user:
-        await callback.answer("Это не твой сервис", show_alert=True)
+    if service.get("assigned_to") != user_id:
+        await callback.answer("Не твой сервис", show_alert=True)
         return
 
     if service.get("status") != "in_progress":
-        await callback.answer("Нельзя отменить этот сервис", show_alert=True)
+        await callback.answer("Нельзя отменить", show_alert=True)
         return
 
     update_status(service_id, "pending", "")
@@ -143,27 +134,27 @@ class FinishService(StatesGroup):
     comment = State()
 
 
-@router.callback_query(lambda c: c.data and c.data.startswith("finish:"))
+@router.callback_query(lambda c: c.data.startswith("finish:"))
 async def finish(callback: CallbackQuery, state: FSMContext):
-    service_id = callback.data.split(":", 1)[1]
-    user = get_user_display(callback.from_user)
+    service_id = callback.data.split(":")[1]
+    user_id = str(callback.from_user.id)
 
     service = get_by_id(service_id)
 
     if not service:
-        await callback.answer("Сервис не найден", show_alert=True)
+        await callback.answer("Не найдено", show_alert=True)
         return
 
-    if service.get("assigned_to") != user:
-        await callback.answer("Это не твой сервис", show_alert=True)
+    if service.get("assigned_to") != user_id:
+        await callback.answer("Не твой сервис", show_alert=True)
         return
 
     if service.get("status") != "in_progress":
-        await callback.answer("Сервис не в работе", show_alert=True)
+        await callback.answer("Не в работе", show_alert=True)
         return
 
     if exists_completed(service_id):
-        await callback.answer("Сервис уже завершён", show_alert=True)
+        await callback.answer("Уже завершено", show_alert=True)
         return
 
     await state.update_data(service_id=service_id)
@@ -174,17 +165,15 @@ async def finish(callback: CallbackQuery, state: FSMContext):
 
 @router.message(FinishService.netto)
 async def get_netto(msg: Message, state: FSMContext):
-    raw_value = (msg.text or "").replace(",", ".").replace("zł", "").strip()
+    netto = msg.text.replace(",", ".").replace("zł", "").strip()
 
     try:
-        netto_value = float(raw_value)
-        if netto_value < 0:
-            raise ValueError
-    except ValueError:
-        await msg.answer("❌ Введите корректное число (например 250 или 250.50)")
+        netto = float(netto)
+    except:
+        await msg.answer("❌ Введите число")
         return
 
-    await state.update_data(netto=f"{netto_value:.2f}")
+    await state.update_data(netto=str(netto))
     await msg.answer("Комментарий:")
     await state.set_state(FinishService.comment)
 
@@ -194,46 +183,41 @@ async def finish_done(msg: Message, state: FSMContext):
     data = await state.get_data()
     service_id = data.get("service_id")
 
-    if not service_id:
-        await msg.answer("❌ Потерян ID сервиса")
-        await state.clear()
-        return
-
     service = get_by_id(service_id)
-    user = get_user_display(msg.from_user)
+    user_id = str(msg.from_user.id)
 
     if not service:
-        await msg.answer("❌ Сервис не найден")
+        await msg.answer("Ошибка")
         await state.clear()
         return
 
-    if service.get("assigned_to") != user:
-        await msg.answer("❌ Это не твой сервис")
+    if service.get("assigned_to") != user_id:
+        await msg.answer("Не твой сервис")
         await state.clear()
         return
 
     if service.get("status") != "in_progress":
-        await msg.answer("⚠️ Сервис уже не активен")
+        await msg.answer("Уже закрыт")
         await state.clear()
         return
 
     if exists_completed(service_id):
-        await msg.answer("⚠️ Сервис уже завершён ранее")
+        await msg.answer("Уже завершено")
         await state.clear()
         return
 
     result = {
         "id": service["id"],
-        "car_number": service.get("car_number", ""),
-        "datetime": service.get("datetime", ""),
+        "car_number": service.get("car_number"),
+        "datetime": service.get("datetime"),
         "netto": data["netto"],
-        "comment": (msg.text or "").strip(),
-        "created_by": service.get("created_by", ""),
-        "completed_by": user,
+        "comment": msg.text,
+        "created_by": service.get("created_by"),
+        "completed_by": user_id
     }
 
     add_completed(result)
     delete_pending(service["id"])
 
-    await msg.answer("✅ Сервис завершён")
+    await msg.answer("✅ Готово")
     await state.clear()

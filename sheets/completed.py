@@ -1,92 +1,56 @@
 from sheets.client import completed_sheet
 
 
-# ===============================
-# 🔧 UTILS
-# ===============================
-
-def _normalize_row(row: dict) -> dict:
-    return {
-        "id": str(row.get("id", "")).strip(),
-        "car_number": str(row.get("car_number", "")).strip(),
-        "datetime": str(row.get("datetime", "")).strip(),
-        "netto": str(row.get("netto", "")).strip(),
-        "brutto": str(row.get("brutto", "")).strip(),
-        "comment": str(row.get("comment", "")).strip(),
-        "created_by": str(row.get("created_by", "")).strip(),
-        "completed_by": str(row.get("completed_by", "")).strip(),
-    }
-
-
-# ===============================
-# 📥 READ
-# ===============================
-
 def get_completed():
-    rows = completed_sheet.get_all_records()
-    return [_normalize_row(r) for r in rows]
+    return completed_sheet.get_all_records()
 
 
 def exists_completed(service_id: str) -> bool:
-    service_id = str(service_id).strip()
-
     for row in get_completed():
-        if row["id"] == service_id:
+        if str(row.get("id")) == str(service_id):
             return True
-
     return False
 
 
-# ===============================
-# ➕ CREATE
-# ===============================
-
-def add_completed(data: dict):
-    service_id = str(data.get("id", "")).strip()
-
-    # 🔥 защита от дублей
-    if exists_completed(service_id):
+def add_completed(data):
+    if exists_completed(data["id"]):
         return False
 
     row = [
-        service_id,
-        data.get("car_number", ""),
-        data.get("datetime", ""),
-        data.get("netto", ""),
-        data.get("brutto", ""),  # если нет — ок
-        data.get("comment", ""),
-        data.get("created_by", ""),
-        data.get("completed_by", "")
+        data.get("id"),
+        data.get("car_number"),
+        data.get("datetime"),
+        data.get("netto"),
+        data.get("brutto", ""),
+        data.get("comment"),
+        data.get("created_by"),
+        data.get("completed_by"),
     ]
 
     completed_sheet.append_row(row)
     return True
 
 
-# ===============================
-# 📊 ФИЛЬТР ПО МЕХАНИКУ
-# ===============================
-
-def get_my_completed_since(user: str, date_from: str):
+def get_my_completed_since(user_id: str, date_from: str):
     from datetime import datetime
 
     try:
-        date_from_obj = datetime.strptime(date_from, "%d.%m.%Y")
+        date_from = datetime.strptime(date_from, "%d.%m.%Y")
     except:
         return []
 
-    results = []
+    result = []
 
     for row in get_completed():
-        if row["completed_by"] != user:
+        if str(row.get("completed_by")) != str(user_id):
             continue
 
         try:
-            row_date = datetime.strptime(row["datetime"], "%d.%m.%Y %H:%M")
+            row_date = datetime.strptime(row.get("datetime"), "%d.%m.%Y %H:%M")
         except:
             continue
 
-        if row_date >= date_from_obj:
-            results.append(row)
+        if row_date >= date_from:
+            result.append(row)
 
-    return results
+    return result
