@@ -1,5 +1,6 @@
 from aiogram import Router
 from aiogram.types import Message
+from aiogram.filters import Command
 
 from services.roles import check_role
 from keyboards.mechanic import mechanic_kb
@@ -15,9 +16,13 @@ def get_role_safe(user):
         return None
 
 
-@router.message(lambda msg: msg.text == "/start")
+# 🔥 ПРАВИЛЬНЫЙ /start
+@router.message(Command("start"))
 async def start_cmd(message: Message):
     role = get_role_safe(message.from_user)
+
+    # DEBUG
+    await message.answer(f"ROLE: {role}")
 
     if role == "mechanic":
         await message.answer(
@@ -29,9 +34,9 @@ async def start_cmd(message: Message):
     await message.answer("Нет доступа")
 
 
-# 🔥 ФОЛБЭК КОМАНДА (очень важно)
-@router.message(lambda msg: msg.text == "/menu")
-async def menu(message: Message):
+# 🔥 ПРАВИЛЬНЫЙ /menu
+@router.message(Command("menu"))
+async def menu_cmd(message: Message):
     role = get_role_safe(message.from_user)
 
     if role == "mechanic":
