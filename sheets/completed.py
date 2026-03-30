@@ -54,3 +54,28 @@ def get_my_completed_since(user_id: str, date_from: str):
             result.append(row)
 
     return result
+
+# ===============================
+# 🔁 BACKWARD COMPATIBILITY
+# ===============================
+
+def get_completed_since(date_from: str):
+    from datetime import datetime
+
+    try:
+        date_from = datetime.strptime(date_from, "%d.%m.%Y")
+    except:
+        return []
+
+    result = []
+
+    for row in get_completed():
+        try:
+            row_date = datetime.strptime(row.get("datetime"), "%d.%m.%Y %H:%M")
+        except:
+            continue
+
+        if row_date >= date_from:
+            result.append(row)
+
+    return result
