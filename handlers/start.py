@@ -17,16 +17,25 @@ async def start(msg: Message):
 
     print(f"DEBUG ROLE: {role}")
 
-    # 👇 МЕХАНИК
+    # 🔧 mechanic — только его меню
     if role == "mechanic":
         await msg.answer("Меню", reply_markup=mechanic_kb)
 
-    # 👇 АДМИН
+    # 👑 admin — полный доступ
     elif role == "admin":
         await msg.answer("Меню", reply_markup=admin_kb)
 
-    # 👇 ASSISTANT и ACCOUNTANT — ТОЛЬКО ОТЧЕТЫ
-    elif role in ["assistant", "accountant", "chief_mechanic"]:
+    # 👩‍💼 assistant — как admin (создание + отчёт)
+    elif role == "assistant":
+        await msg.answer("Меню", reply_markup=admin_kb)
+
+    # 🧠 chief_mechanic — записи + отчёты
+    elif role == "chief_mechanic":
+        await msg.answer("Меню", reply_markup=mechanic_kb)
+        await msg.answer("Дополнительно доступен отчёт", reply_markup=accountant_kb)
+
+    # 💰 accountant — только отчёты
+    elif role == "accountant":
         await msg.answer("Меню", reply_markup=accountant_kb)
 
     else:
