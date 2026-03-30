@@ -15,15 +15,18 @@ async def start(msg: Message):
         await msg.answer("❌ У вас нет доступа")
         return
 
-    await msg.answer(f"DEBUG ROLE: {role}")
+    print(f"DEBUG ROLE: {role}")
 
+    # 👇 МЕХАНИК
     if role == "mechanic":
         await msg.answer("Меню", reply_markup=mechanic_kb)
 
-    elif role in ["admin", "assistant"]:
+    # 👇 АДМИН
+    elif role == "admin":
         await msg.answer("Меню", reply_markup=admin_kb)
 
-    elif role in ["accountant", "chief_mechanic"]:
+    # 👇 ASSISTANT и ACCOUNTANT — ТОЛЬКО ОТЧЕТЫ
+    elif role in ["assistant", "accountant", "chief_mechanic"]:
         await msg.answer("Меню", reply_markup=accountant_kb)
 
     else:
