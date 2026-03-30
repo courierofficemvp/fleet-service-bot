@@ -1,10 +1,7 @@
-from sheets.client import pending_sheet
 from uuid import uuid4
 
+from sheets.client import pending_sheet
 
-# ===============================
-# 🔧 UTILS
-# ===============================
 
 def normalize_car(car):
     return str(car).strip().upper()
@@ -23,27 +20,22 @@ def _normalize_row(row: dict) -> dict:
     }
 
 
-# ===============================
-# ➕ CREATE
-# ===============================
-
 def add_pending(data):
+    service_id = str(data.get("id") or uuid4()).strip()
+
     row = [
-        str(uuid4()),
+        service_id,
         normalize_car(data["car_number"]),
-        data["datetime"],
-        data["work_description"],
-        data["driver_phone"],
+        str(data["datetime"]).strip(),
+        str(data["work_description"]).strip(),
+        str(data["driver_phone"]).strip(),
         "pending",
-        data.get("created_by", ""),
-        ""
+        str(data.get("created_by", "")).strip(),
+        "",
     ]
     pending_sheet.append_row(row)
+    return service_id
 
-
-# ===============================
-# 📥 READ
-# ===============================
 
 def get_pending():
     rows = pending_sheet.get_all_records()
@@ -53,29 +45,31 @@ def get_pending():
 def get_by_id(service_id):
     service_id = str(service_id).strip()
 
-    for r in get_pending():
-        if r["id"] == service_id:
-            return r
+    for row in get_pending():
+        if row["id"] == service_id:
+            return row
 
     return None
 
 
-# ===============================
-# 🔁 UPDATE
-# ===============================
-
 def update_status(service_id, status, user=None):
+    service_id = str(service_id).strip()
     rows = pending_sheet.get_all_values()
 
     for i, row in enumerate(rows):
-        if row[0] == service_id:
-            # 🔥 ОДИН update вместо двух
-            updated_row = row.copy()
+        if not row:
+            continue
 
-            updated_row[5] = status  # status
+        if row[0] == service_id:
+            updated_row = row[:]
+
+            while len(updated_row) < 8:
+                updated_row.append("")
+
+            updated_row[5] = str(status).strip()
 
             if user is not None:
-                updated_row[7] = user  # assigned_to
+                updated_row[7] = str(user).strip()
 
             pending_sheet.update(f"A{i+1}:H{i+1}", [updated_row])
             return True
@@ -83,17 +77,11 @@ def update_status(service_id, status, user=None):
     return False
 
 
-# ===============================
-# 🔒 SAFE ASSIGN (анти-гонка)
-# ===============================
-
 def assign_if_free(service_id, user):
-    """
-    Максимально безопасное назначение для Google Sheets
-    """
+    service_id = str(service_id).strip()
+    user = str(user).strip()
 
     service = get_by_id(service_id)
-
     if not service:
         return False
 
@@ -103,12 +91,11 @@ def assign_if_free(service_id, user):
     if service["assigned_to"]:
         return False
 
-    # обновляем
-    update_status(service_id, "in_progress", user)
+    saved = update_status(service_id, "in_progress", user)
+    if not saved:
+        return False
 
-    # проверяем после записи
     updated = get_by_id(service_id)
-
     if not updated:
         return False
 
@@ -118,16 +105,13 @@ def assign_if_free(service_id, user):
     )
 
 
-# ===============================
-# ❌ DELETE
-# ===============================
-
 def delete_pending(service_id):
+    service_id = str(service_id).strip()
     rows = pending_sheet.get_all_values()
 
     for i, row in enumerate(rows):
-        if row[0] == service_id:
-            pending_sheet.delete_rows(i+1)
+        if row and row[0] == service_id:
+            pending_sheet.delete_rows(i + 1)
             return True
 
     return False
