@@ -1,43 +1,45 @@
 from sheets.client import users_sheet
 
 
-def get_role(user):
-    user_id = str(user.id).strip()
+def get_role(telegram_id):
+    telegram_id = str(telegram_id).strip()
 
-    rows = users_sheet.get_all_records()
+    data = users_sheet.get_all_records()
 
-    for row in rows:
-        sheet_id = str(row.get("telegram_id", "")).strip()
+    print("DEBUG USERS:", data)
 
-        if sheet_id == user_id:
-            return str(row.get("role", "")).strip().lower()
+    for row in data:
+        # нормализация ключей
+        normalized = {str(k).strip().lower(): v for k, v in row.items()}
+
+        row_id = str(normalized.get("telegram_id", "")).strip()
+        role = str(normalized.get("role", "")).strip()
+
+        print(f"CHECK ROW: {row_id} == {telegram_id}")
+
+        if row_id == telegram_id:
+            return role
 
     return None
 
 
-# ===============================
-# 👤 DISPLAY NAME
-# ===============================
-
-def get_user_display(user):
-    if user.username:
-        return f"@{user.username}"
-    return user.full_name
-
-
-# ===============================
-# 👥 USERS BY ROLE
-# ===============================
-
 def get_users_by_role(role: str):
-    role = str(role).strip().lower()
-
-    rows = users_sheet.get_all_records()
-
+    data = users_sheet.get_all_records()
     result = []
 
-    for row in rows:
-        if str(row.get("role", "")).strip().lower() == role:
-            result.append(row)
+    for row in data:
+        normalized = {str(k).strip().lower(): v for k, v in row.items()}
+
+        if normalized.get("role") == role:
+            result.append(normalized.get("telegram_id"))
 
     return result
+
+
+def get_user_display(user):
+    full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+    if not full_name:
+        full_name = user.username or str(user.id)
+
+    role = get_role(user.id) or "unknown"
+    return f"{full_name} | {role}"
