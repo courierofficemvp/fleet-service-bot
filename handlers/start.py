@@ -15,7 +15,6 @@ async def start(msg: Message):
         await msg.answer("❌ У вас нет доступа")
         return
 
-    # 🔥 DEBUG
     await msg.answer(f"DEBUG ROLE: {role}")
 
     if role == "mechanic":
