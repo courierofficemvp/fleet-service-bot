@@ -57,8 +57,11 @@ async def show_report(msg: Message, state: FSMContext):
     text = "📊 Отчёт:\n\n"
 
     for r in data:
-        netto = format_money(r.get("netto", ""))
-        brutto = format_money(r.get("brutto", ""))
+        netto_val = float(str(r.get("netto", "")).replace(",", ".").strip())
+        brutto_val = round(netto_val * 1.23, 2)
+
+        netto = format_money(netto_val)
+        brutto = format_money(brutto_val)
         created_by = r.get("created_by", "")
         completed_by = r.get("completed_by", "")
 
