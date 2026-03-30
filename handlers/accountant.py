@@ -15,8 +15,15 @@ class ReportState(StatesGroup):
 
 def format_money(value):
     try:
-        value = float(str(value).replace(",", "."))
-        return f"{str(round(value, 2)).replace('.', ',')} zł"
+        text = str(value or "")
+        text = text.replace("zł", "")
+        text = text.replace(" ", "")
+        text = text.replace(",", ".")
+        text = text.strip()
+
+        value = float(text)
+
+        return f"{value:.2f}".replace(".", ",") + " zł"
     except Exception:
         return f"{value} zł"
 
